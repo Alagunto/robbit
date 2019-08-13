@@ -64,8 +64,9 @@ func (c *Connection) RunForever() {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Recovered after panic!")
+			fmt.Println(r)
 			c.connection = nil
-			go c.RunForever() // Forfeiting our run loop, recovering connection via recursion, leaking miserably small window size
+			c.RunForever() // Forfeiting our run loop, recovering connection via recursion, leaking miserably small window size
 		}
 	}()
 
