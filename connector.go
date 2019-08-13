@@ -60,15 +60,25 @@ func (c *Connection) OnConnectionOpen(callback func(connection *amqp.Connection)
 }
 
 func (c *Connection) RunForever() {
-	// In case we panic in for-loop
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered after panic!")
-			fmt.Println(r)
+			fmt.Println("Recovered after panic in main rmq loop")
 			c.connection = nil
 			c.RunForever() // Forfeiting our run loop, recovering connection via recursion, leaking miserably small window size
 		}
 	}()
+
+	c.loop()
+}
+
+func (c *Connection) Run() *Connection {
+	go c.RunForever()
+
+	return c
+}
+
+func (c *Connection) loop() {
+	// In case we panic in for-loop
 
 	for {
 		c.connectionPrepared = false // It's definitely not prepared yet
@@ -85,24 +95,40 @@ func (c *Connection) RunForever() {
 
 		notify := connection.NotifyClose(make(chan *amqp.Error))
 
+		weGood := true
 		group := sync.WaitGroup{}
 		group.Add(2)
 		go func() {
+			defer func() {
+				println("Recovering?")
+				if r := recover(); r != nil {
+					weGood = false
+					group.Done()
+				}
+			}()
+
 			for channel, callback := range c.channelsRequested {
 				callback(c.makeChannel(channel))
 			}
 			group.Done()
 		}()
+
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					weGood = false
+					group.Done()
+				}
+			}()
+
 			for _, callback := range c.callbacksRequested {
 				callback(c.connection)
 			}
 			group.Done()
 		}()
 
-		go func() {
-			group.Wait()
-
+		group.Wait()
+		if weGood {
 			c.connectionPrepared = true
 
 			c.waitingGuysLock.Lock()
@@ -114,7 +140,12 @@ func (c *Connection) RunForever() {
 			}
 
 			c.waitingGuys = []func(connection *amqp.Connection){}
-		}()
+		} else {
+			// Someone panicked in the initialization
+			// We shall just continue and reinit all the things
+			println("Panic occured in the initialization of connection, recreating connection...")
+			continue
+		}
 
 	ReceiveLoop:
 		for {
@@ -128,11 +159,6 @@ func (c *Connection) RunForever() {
 	}
 }
 
-func (c *Connection) Run() *Connection {
-	go c.RunForever()
-
-	return c
-}
 
 func (c *Connection) awaitPreparedConnection(callback func(connection *amqp.Connection)) {
 	if c.connectionPrepared && (c.connection != nil) && !c.connection.IsClosed() {

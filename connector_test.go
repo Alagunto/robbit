@@ -3,7 +3,6 @@ package robbit
 import (
 	"github.com/streadway/amqp"
 	"testing"
-	"time"
 )
 
 func TestConnectTo(t *testing.T) {
@@ -11,14 +10,7 @@ func TestConnectTo(t *testing.T) {
 		println("Channel ", channel, " is given ")
 	})
 
-
 	go func() {
-		c.WithOpenConnection(func(c *amqp.Connection) {
-			println("I've got a connection ", c)
-		})
-
-		time.Sleep(5 * time.Second)
-
 		c.WithOpenConnection(func(c *amqp.Connection) {
 			println("I've got a connection ", c)
 		})
