@@ -1,6 +1,9 @@
 package main
 
-import "github.com/streadway/amqp"
+import (
+	"fmt"
+	"github.com/streadway/amqp"
+)
 import "git-02.t1-group.ru/go-modules/robbit"
 
 func main() {
@@ -11,6 +14,10 @@ func main() {
 	// After each channel creation, given callback will be run
 	c.MaintainChannel("source", func(channel *amqp.Channel) {
 		println("Channel", channel, "is given")
+	})
+
+	c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
+		fmt.Printf("%v", channels)
 	})
 
 	go func() {

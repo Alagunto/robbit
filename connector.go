@@ -13,7 +13,7 @@ type Connection struct {
 	connection *amqp.Connection
 
 	channelsRequested  map[string]func(channel *amqp.Channel)
-	callbacksRequested []func(connection *amqp.Connection)
+	callbacksRequested []func(*amqp.Connection, map[string]*amqp.Channel)
 
 	openChannels map[string]*amqp.Channel
 	connectionEstablished chan struct{}
@@ -55,7 +55,7 @@ func (c *Connection) MaintainChannel(channelName string, initializingCallback fu
 	return c
 }
 
-func (c *Connection) OnConnectionOpen(callback func(connection *amqp.Connection)) {
+func (c *Connection) InitializeWith(callback func(connection *amqp.Connection, channels map[string]*amqp.Channel)) {
 	c.callbacksRequested = append(c.callbacksRequested, callback)
 }
 
@@ -97,10 +97,9 @@ func (c *Connection) loop() {
 
 		weGood := true
 		group := sync.WaitGroup{}
-		group.Add(2)
+		group.Add(1)
 		go func() {
 			defer func() {
-				println("Recovering?")
 				if r := recover(); r != nil {
 					weGood = false
 					group.Done()
@@ -110,20 +109,11 @@ func (c *Connection) loop() {
 			for channel, callback := range c.channelsRequested {
 				callback(c.makeChannel(channel))
 			}
-			group.Done()
-		}()
-
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					weGood = false
-					group.Done()
-				}
-			}()
 
 			for _, callback := range c.callbacksRequested {
-				callback(c.connection)
+				callback(c.connection, c.openChannels)
 			}
+
 			group.Done()
 		}()
 
