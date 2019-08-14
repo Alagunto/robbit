@@ -55,8 +55,10 @@ func (c *Connection) MaintainChannel(channelName string, initializingCallback fu
 	return c
 }
 
-func (c *Connection) InitializeWith(callback func(connection *amqp.Connection, channels map[string]*amqp.Channel)) {
+func (c *Connection) InitializeWith(callback func(connection *amqp.Connection, channels map[string]*amqp.Channel)) *Connection {
 	c.callbacksRequested = append(c.callbacksRequested, callback)
+
+	return c
 }
 
 func (c *Connection) RunForever() {
