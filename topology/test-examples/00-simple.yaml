@@ -1,0 +1,4 @@
+exchanges:
+  - name: kek
+    kind: fanout
+    nowait: true

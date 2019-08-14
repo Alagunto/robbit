@@ -12,7 +12,7 @@ type Connection struct {
 
 	connection *amqp.Connection
 
-	channelsRequested  map[string]func(channel *amqp.Channel)
+	channelsRequested  map[string] []func(channel *amqp.Channel)
 	callbacksRequested []func(*amqp.Connection, map[string]*amqp.Channel)
 
 	openChannels map[string]*amqp.Channel
@@ -30,7 +30,7 @@ func ConnectTo(RmqUrl string) (connection *Connection) {
 		RmqUrl: RmqUrl,
 	}
 
-	connection.channelsRequested = map[string]func(channel *amqp.Channel){}
+	connection.channelsRequested = map[string][]func(channel *amqp.Channel){}
 
 	connection.openChannels = map[string]*amqp.Channel{}
 	connection.connectionEstablished = make(chan struct{}, 128)
@@ -51,7 +51,7 @@ func (c *Connection) WithOpenChannel(channelName string, callback func(c *amqp.C
 }
 
 func (c *Connection) MaintainChannel(channelName string, initializingCallback func(channel *amqp.Channel)) *Connection {
-	c.channelsRequested[channelName] = initializingCallback
+	c.channelsRequested[channelName] = append(c.channelsRequested[channelName], initializingCallback)
 	return c
 }
 
@@ -108,8 +108,11 @@ func (c *Connection) loop() {
 				}
 			}()
 
-			for channel, callback := range c.channelsRequested {
-				callback(c.makeChannel(channel))
+			for channel, callbacks := range c.channelsRequested {
+				channelPointer := c.makeChannel(channel)
+				for _, callback := range callbacks {
+					callback(channelPointer)
+				}
 			}
 
 			for _, callback := range c.callbacksRequested {
