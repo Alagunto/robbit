@@ -39,6 +39,7 @@ func TestConnection_WithTopologyFrom(t *testing.T) {
 		if _, exists := channels["lol"]; !exists {
 			t.Error("No channel 'lol'")
 		}
+
 	})
 
 	c.RunForever()

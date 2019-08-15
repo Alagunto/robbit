@@ -1,7 +1,10 @@
 exchanges:
   - name: fan
     kind: fanout
-    nowait: true
+    durable: true
+    autodelete: false
+    internal: false
+    nowait: false
 
 channels:
   - one
@@ -10,9 +13,14 @@ channels:
 queues:
   - name: queue
     durable: true
+    autodelete: false
+    exclusive: false
+    nowait: false
 
 bindings:
   - queuename: queue
+    key: ""
     exchange: fan
+    nowait: false
 
 channelfordeclarations: lol
