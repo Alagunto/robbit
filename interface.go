@@ -1,13 +1,12 @@
-package topology
+package robbit
 
 import (
-	"git-02.t1-group.ru/go-modules/robbit"
+	"git-02.t1-group.ru/go-modules/robbit/topology"
 	"github.com/streadway/amqp"
 	"gopkg.in/yaml.v2"
 )
 
-func Apply(topology *Topology, connection *robbit.Connection) {
-	// First, exchanges
+func ApplyTopology(topology *topology.Topology, connection *Connection) {
 	connection.MaintainChannel(string(topology.ChannelForDeclarations), func(channel *amqp.Channel) {
 		for _, exchange := range topology.Exchanges {
 			err := channel.ExchangeDeclare(
@@ -40,18 +39,28 @@ func Apply(topology *Topology, connection *robbit.Connection) {
 			}
 		}
 
-		//for _, binding := range topology.Binding {
-		//	_, err := channel.QueueBind()
-		//}
+		for _, binding := range topology.Bindings {
+			err := channel.QueueBind(binding.QueueName, binding.Key, binding.Exchange, binding.NoWait, binding.Args)
+
+			if err != nil {
+				panic(err)
+			}
+		}
 	})
 
-	// Now, queues
+	for _, channel := range topology.Channels {
+		connection.MaintainChannel(string(channel), func(channel *amqp.Channel) {})
+	}
 }
 
-func Decompose(topology string) (result *Topology) {
-	result = &Topology{}
+func DecomposeTopology(t string) (result *topology.Topology) {
+	if t == "" {
+		panic("Topology contents is empty. Probably, file is not found.")
+	}
 
-	err := yaml.Unmarshal([]byte(topology), result)
+	result = &topology.Topology{}
+
+	err := yaml.Unmarshal([]byte(t), result)
 
 	if err != nil {
 		panic(err)
@@ -59,3 +68,4 @@ func Decompose(topology string) (result *Topology) {
 
 	return
 }
+

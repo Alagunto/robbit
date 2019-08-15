@@ -2,13 +2,12 @@ package topology
 
 type Topology struct {
 	Exchanges []Exchange
-	Queues []Queue
-	Binding []Binding
-	Channels []Channel
+	Queues    []Queue
+	Bindings  []Binding
+	Channels  []Channel
 
 	ChannelForDeclarations Channel
 }
-
 
 func (t *Topology) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type bufferType Topology

@@ -1,4 +1,18 @@
 exchanges:
-  - name: kek
+  - name: fan
     kind: fanout
     nowait: true
+
+channels:
+  - one
+  - two
+
+queues:
+  - name: queue
+    durable: true
+
+bindings:
+  - queuename: queue
+    exchange: fan
+
+channelfordeclarations: lol

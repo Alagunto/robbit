@@ -19,11 +19,11 @@ func (t *Binding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	err := unmarshal(b)
 
 	if b.Exchange == "" {
-		panic("Binding exchange cannot be empty!")
+		panic("Bindings exchange cannot be empty!")
 	}
 
 	if b.QueueName == "" {
-		panic("Binding queue name cannot be empty!")
+		panic("Bindings queue name cannot be empty!")
 	}
 
 	*t = Binding(*b)

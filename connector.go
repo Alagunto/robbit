@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"git-02.t1-group.ru/go-modules/utils"
 	"github.com/streadway/amqp"
+	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -57,6 +59,17 @@ func (c *Connection) MaintainChannel(channelName string, initializingCallback fu
 
 func (c *Connection) InitializeWith(callback func(connection *amqp.Connection, channels map[string]*amqp.Channel)) *Connection {
 	c.callbacksRequested = append(c.callbacksRequested, callback)
+
+	return c
+}
+
+func (c *Connection) WithTopologyFrom(reader io.Reader) *Connection {
+	s, err := ioutil.ReadAll(reader)
+	if err != nil {
+		panic(err)
+	}
+
+	ApplyTopology(DecomposeTopology(string(s)), c)
 
 	return c
 }
