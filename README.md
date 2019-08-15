@@ -4,7 +4,7 @@
 
 _он просто роби́т_
 ### Простой пример
-```
+```go
 c := robbit.ConnectTo("amqp://localhost:5672/")
 c.RunForever() // blocking
 ```
@@ -16,7 +16,7 @@ c.RunForever() // blocking
 `Run()` — это синоним для `go RunForever()`
 
 ### Каналы и переподключение
-```
+```go
 c := robbit.ConnectTo("amqp://localhost:5672/")
 c.MaintainChannel("source", func(channel *amqp.Channel) {
     println("Channel", channel, "is given")
@@ -29,7 +29,7 @@ Callback, который передаётся в `MaintainChannel`, вызыва
 
 Из этого callback'а имеет смысл объявлять очереди, exchange'ы и бинды.
 
-```
+```go
 c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
     fmt.Printf("%v", channels)
 })
@@ -43,7 +43,7 @@ __Если любой из этих коллбеков запаникует, п�
 
 ### Чтение 
 
-```
+```go
 c := robbit.ConnectTo("amqp://localhost:5672/")
 
 c.MaintainChannel("source", func(channel *amqp.Channel) {}) 
@@ -69,7 +69,7 @@ c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Cha
 
 ### Запись
 
-```
+```go
 c := robbit.ConnectTo("amqp://localhost:5672/")
 
 c.MaintainChannel("target", func(channel *amqp.Channel) {}) 
@@ -99,7 +99,7 @@ c.WithOpenChannel("target", func(c *amqp.Channel) {
 Чтобы не объявлять кучу очередей, биндов и прочих сущностей методом копипастинга `channel.DelcareBullshit`, можно сделать config-файл в yaml и подгрузить топологию из него.
 
 __config.yaml:__
-```
+```yaml
 exchanges:
   - name: fan
     kind: fanout
@@ -122,7 +122,7 @@ channelfordeclarations: lol
 
 Далее,
 
-```
+```go
 topology, _ := os.Open("config.yaml")
 
 c := robbit.ConnectTo("amqp://localhost:5672/").
@@ -144,13 +144,13 @@ c.RunForever()
 Дефолтные значения:
 
 - Binding
-    ```
+    ```go
     Key =  ""
     NoWait = false
     Args = nil
     ```
 - Queue
-    ```
+    ```go
     Durable = true
     AutoDelete = false
     Exclusive = false
@@ -158,7 +158,7 @@ c.RunForever()
     Args = nil
     ```
 - Exchange
-    ```
+    ```go
     Kind = "fanout"
     Durable = true
     AutoDelete = false
