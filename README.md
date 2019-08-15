@@ -144,13 +144,13 @@ c.RunForever()
 Дефолтные значения:
 
 - Binding
-    ```go
+    ```
     Key =  ""
     NoWait = false
     Args = nil
     ```
 - Queue
-    ```go
+    ```
     Durable = true
     AutoDelete = false
     Exclusive = false
@@ -158,7 +158,7 @@ c.RunForever()
     Args = nil
     ```
 - Exchange
-    ```go
+    ```
     Kind = "fanout"
     Durable = true
     AutoDelete = false
