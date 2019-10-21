@@ -7,7 +7,7 @@ import (
 )
 
 func ApplyTopology(topology *topology.Topology, connection *Connection) {
-	connection.MaintainChannel(string(topology.ChannelForDeclarations), func(channel *amqp.Channel) {
+	connection.MaintainChannel(string(topology.ChannelForDeclarations), func(channel *amqp.Channel, connection *amqp.Connection) {
 		for _, exchange := range topology.Exchanges {
 			err := channel.ExchangeDeclare(
 				exchange.Name,
@@ -49,7 +49,7 @@ func ApplyTopology(topology *topology.Topology, connection *Connection) {
 	})
 
 	for _, channel := range topology.Channels {
-		connection.MaintainChannel(string(channel), func(channel *amqp.Channel) {})
+		connection.MaintainChannel(string(channel), func(channel *amqp.Channel, connection *amqp.Connection) {})
 	}
 }
 

@@ -12,7 +12,7 @@ import "git-02.t1-group.ru/go-modules/robbit"
 func main() {
 	c := robbit.ConnectTo("amqp://localhost:5672/")
 
-	c.MaintainChannel("source", func(channel *amqp.Channel) {
+	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
 		println("Channel", channel, "is given")
 		panic("me ded lol")
 	})

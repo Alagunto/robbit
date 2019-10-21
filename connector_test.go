@@ -7,7 +7,7 @@ import (
 )
 
 func TestConnectTo(t *testing.T) {
-	c := ConnectTo("amqp://localhost:5672/").MaintainChannel("source", func(channel *amqp.Channel) {
+	c := ConnectTo("amqp://localhost:5672/").MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
 		println("Channel ", channel, " is given ")
 	})
 

@@ -10,20 +10,23 @@ import (
 )
 
 type Connection struct {
-	RmqUrl       string
+	RmqUrl string
 
 	connection *amqp.Connection
 
-	channelsRequested  map[string] []func(channel *amqp.Channel)
+	channelsRequested  map[string][]func(channel *amqp.Channel, connection *amqp.Connection)
 	callbacksRequested []func(*amqp.Connection, map[string]*amqp.Channel)
 
-	openChannels map[string]*amqp.Channel
+	openChannels          map[string]*amqp.Channel
 	connectionEstablished chan struct{}
 
-	waitingGuys []func(connection *amqp.Connection)
+	waitingGuys     []func(connection *amqp.Connection)
 	waitingGuysLock sync.Mutex
 
 	connectionPrepared bool
+
+	// This channel is used for reconnection. Send anything to it, robbit will reconnect
+	reconnectionNotify chan struct{}
 }
 
 // Returns a new connection to RabbitMQ, uninitialized yet
@@ -32,11 +35,12 @@ func ConnectTo(RmqUrl string) (connection *Connection) {
 		RmqUrl: RmqUrl,
 	}
 
-	connection.channelsRequested = map[string][]func(channel *amqp.Channel){}
+	connection.channelsRequested = map[string][]func(channel *amqp.Channel, connection *amqp.Connection){}
 
 	connection.openChannels = map[string]*amqp.Channel{}
 	connection.connectionEstablished = make(chan struct{}, 128)
 
+	connection.reconnectionNotify = make(chan struct{}, 128)
 	return
 }
 
@@ -52,7 +56,7 @@ func (c *Connection) WithOpenChannel(channelName string, callback func(c *amqp.C
 	})
 }
 
-func (c *Connection) MaintainChannel(channelName string, initializingCallback func(channel *amqp.Channel)) *Connection {
+func (c *Connection) MaintainChannel(channelName string, initializingCallback func(channel *amqp.Channel, connection *amqp.Connection)) *Connection {
 	c.channelsRequested[channelName] = append(c.channelsRequested[channelName], initializingCallback)
 	return c
 }
@@ -93,14 +97,11 @@ func (c *Connection) Run() *Connection {
 }
 
 func (c *Connection) loop() {
-	// In case we panic in for-loop
-
 	for {
 		c.connectionPrepared = false // It's definitely not prepared yet
 
-		fmt.Println("Knocking at " + c.RmqUrl + "...")
 		connection, err := amqp.Dial(c.RmqUrl)
-		utils.FailOnError(err, "Could not connect to RMQ at URL " + c.RmqUrl)
+		utils.FailOnError(err, "Could not connect to RMQ at URL "+c.RmqUrl)
 		if err != nil { // Retry
 			continue
 		}
@@ -108,7 +109,8 @@ func (c *Connection) loop() {
 		c.connection = connection
 		c.openChannels = map[string]*amqp.Channel{}
 
-		notify := connection.NotifyClose(make(chan *amqp.Error))
+		notify := make(chan *amqp.Error)
+		connection.NotifyClose(notify)
 
 		weGood := true
 		group := sync.WaitGroup{}
@@ -124,7 +126,7 @@ func (c *Connection) loop() {
 			for channel, callbacks := range c.channelsRequested {
 				channelPointer := c.makeChannel(channel)
 				for _, callback := range callbacks {
-					callback(channelPointer)
+					callback(channelPointer, connection)
 				}
 			}
 
@@ -134,26 +136,25 @@ func (c *Connection) loop() {
 
 			group.Done()
 		}()
-
 		group.Wait()
-		if weGood {
-			c.connectionPrepared = true
 
-			c.waitingGuysLock.Lock()
-			defer c.waitingGuysLock.Unlock()
-
-			fmt.Println("We're ok, notifying all waiting guys...")
-			for _, guy := range c.waitingGuys {
-				go guy(c.connection)
-			}
-
-			c.waitingGuys = []func(connection *amqp.Connection){}
-		} else {
+		if !weGood {
 			// Someone panicked in the initialization
 			// We shall just continue and reinit all the things
 			println("Panic occured in the initialization of connection, recreating connection...")
 			continue
 		}
+
+		c.connectionPrepared = true
+
+		c.waitingGuysLock.Lock()
+
+		for _, guy := range c.waitingGuys {
+			go guy(c.connection)
+		}
+
+		c.waitingGuys = []func(connection *amqp.Connection){}
+		c.waitingGuysLock.Unlock()
 
 	ReceiveLoop:
 		for {
@@ -162,11 +163,14 @@ func (c *Connection) loop() {
 				utils.FailOnError(err, "RMQ disconnected, reconnecting")
 				c.connection = nil // Destroy it!
 				break ReceiveLoop
+			case _ = <-c.reconnectionNotify:
+				fmt.Println("Forcing reconnect...")
+				c.connection = nil
+				break ReceiveLoop
 			}
 		}
 	}
 }
-
 
 func (c *Connection) awaitPreparedConnection(callback func(connection *amqp.Connection)) {
 	if c.connectionPrepared && (c.connection != nil) && !c.connection.IsClosed() {
@@ -174,12 +178,19 @@ func (c *Connection) awaitPreparedConnection(callback func(connection *amqp.Conn
 		callback(c.connection)
 	} else {
 		// We must wait for connection
-		fmt.Println("Woopsie, I have to wait for the connection to get established")
 		c.waitingGuysLock.Lock()
 		defer c.waitingGuysLock.Unlock()
 
 		c.waitingGuys = append(c.waitingGuys, callback)
 	}
+}
+
+func (c *Connection) Reconnect() {
+	c.forceReconnect()
+}
+
+func (c *Connection) forceReconnect() {
+	c.reconnectionNotify <- struct{}{}
 }
 
 func (c *Connection) makeChannel(channelName string) *amqp.Channel {

@@ -12,7 +12,7 @@ func main() {
 
 	// It tells connection to create a channel each time it's reconnecting.
 	// After each channel creation, given callback will be run
-	c.MaintainChannel("source", func(channel *amqp.Channel) {
+	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
 		println("Channel", channel, "is given")
 	})
 
