@@ -13,7 +13,7 @@ func main() {
 	c := robbit.ConnectTo("amqp://localhost:5672/")
 
 	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
-		println("Channel", channel, "is given")
+		fmt.Println("Channel", channel, "is given")
 		panic("me ded lol")
 	})
 

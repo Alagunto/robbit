@@ -19,7 +19,7 @@ c.RunForever() // blocking
 ```go
 c := robbit.ConnectTo("amqp://localhost:5672/")
 c.MaintainChannel("source", func(channel *amqp.Channel) {
-    println("Channel", channel, "is given")
+    fmt.Println("Channel", channel, "is given")
 })
 ```
 

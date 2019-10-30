@@ -2,12 +2,11 @@ package robbit
 
 import (
 	"git-02.t1-group.ru/go-modules/robbit/topology"
-	"github.com/streadway/amqp"
 	"gopkg.in/yaml.v2"
 )
 
-func ApplyTopology(topology *topology.Topology, connection *Connection) {
-	connection.MaintainChannel(string(topology.ChannelForDeclarations), func(channel *amqp.Channel, connection *amqp.Connection) {
+func ApplyTopology(topology *topology.Topology, connector *Connector) {
+	connector.MaintainChannel(string(topology.ChannelForDeclarations), func(connection *Connection, channel *Channel) {
 		for _, exchange := range topology.Exchanges {
 			err := channel.ExchangeDeclare(
 				exchange.Name,
@@ -49,7 +48,7 @@ func ApplyTopology(topology *topology.Topology, connection *Connection) {
 	})
 
 	for _, channel := range topology.Channels {
-		connection.MaintainChannel(string(channel), func(channel *amqp.Channel, connection *amqp.Connection) {})
+		connector.MaintainChannel(string(channel), func(connection *Connection, channel *Channel) {})
 	}
 }
 

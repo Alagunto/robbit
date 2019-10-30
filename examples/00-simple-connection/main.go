@@ -13,7 +13,7 @@ func main() {
 	// It tells connection to create a channel each time it's reconnecting.
 	// After each channel creation, given callback will be run
 	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
-		println("Channel", channel, "is given")
+		fmt.Println("Channel", channel, "is given")
 	})
 
 	c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
@@ -25,11 +25,11 @@ func main() {
 		// This will block if reconnection is in progress
 		// This one guarantees that connection was alive just before the func is called
 		c.WithOpenConnection(func(c *amqp.Connection) {
-			println("I'm given a connection", c)
+			fmt.Println("I'm given a connection", c)
 		})
 
 		c.WithOpenChannel("source", func(c *amqp.Channel) {
-			println("I'm given a channel", c)
+			fmt.Println("I'm given a channel", c)
 		})
 	}()
 

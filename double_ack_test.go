@@ -7,7 +7,7 @@ import (
 )
 
 func TestConnection_Failure(t *testing.T) {
-	ConnectTo("amqp://localhost:5672/").MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
+	To("amqp://localhost:5672/").MaintainChannel("source", func(connection *Connection, channel *Channel) {
 		_, err := channel.QueueDeclare("bug_test", true, true, false, false, map[string]interface{}{})
 		if err != nil {
 			panic(err)
@@ -28,7 +28,7 @@ func TestConnection_Failure(t *testing.T) {
 
 		go func() {
 			for msg := range c {
-				println(string(msg.Body))
+				fmt.Println(string(msg.Body))
 
 				err := channel.Ack(msg.DeliveryTag, false)
 				fmt.Printf("%v\n", err)
