@@ -67,7 +67,6 @@ func (c *Connector) initializeConnection(connection *Connection) *Connection {
 	// Prepare channel
 	for channelName, callback := range c.Callbacks.maintainChannel {
 		channel := connection.OpenChannel(channelName)
-		println("Registering channel ", channelName)
 		callback(connection, channel)
 	}
 
@@ -92,7 +91,7 @@ func (c *Connector) reconnect() {
 		r := recover()
 
 		if r != nil {
-			fmt.Println("Couldn't reconnect =(")
+			fmt.Println("Cannot reconnect because of", r)
 			c.requestReconnection()
 		}
 	}()
@@ -102,7 +101,13 @@ func (c *Connector) reconnect() {
 
 	// Purge connection
 	if c.CurrentConnection != nil {
-		c.CurrentConnection.Purge()
+		//c.CurrentConnection.Purge()
+		/*
+		We cannot purge connection safely, because in case of network connection being broken by rabbit
+		purging a connection will result in panic in goroutine, which we can't recover from. Therefore, we'll refrain
+		from purging a connection ourselves and will just hope for the best.
+		 */
+		// TODO: purge new connection. Probably fork underlying library.
 	}
 
 	// Initialize it, let everyone know we're ok
@@ -131,7 +136,7 @@ func (c *Connector) healthcheck() bool {
 			r := recover()
 
 			if r != nil {
-				fmt.Printf("Recovered from %v", r)
+				fmt.Printf("Recovered from %v\n", r)
 			}
 		}()
 
@@ -146,8 +151,6 @@ func (c *Connector) healthcheck() bool {
 		wg.Done()
 	})
 
-	fmt.Println("Healthcheck", good)
-
 	return good
 }
 
@@ -157,6 +160,7 @@ func (c *Connector) awakeWaitingQueue() {
 
 	for _, c := range c.connectionAwaiting.Queue {
 		c <- struct{}{}
+		close(c)
 	}
 
 	c.connectionAwaiting.Queue = []chan struct{}{}
@@ -168,7 +172,7 @@ func (c *Connector) awaitConnection(callback func(*Connection)) {
 		recovered := recover()
 		if recovered != nil {
 			fmt.Println("Recovered from some kind of panic")
-			fmt.Printf("%v", recovered)
+			fmt.Printf("%v\n", recovered)
 			c.requestReconnection()
 		}
 	}()
@@ -181,7 +185,6 @@ func (c *Connector) awaitConnection(callback func(*Connection)) {
 	if (c.CurrentConnection != nil) && (c.CurrentConnection.IsReady()) {
 		callback(c.CurrentConnection)
 	} else {
-		fmt.Println("We are not connected, awaiting")
 		// We are creating a channel and asking the reconnection system to notify us when we're good
 		go func() {
 			defer func() {
@@ -189,18 +192,18 @@ func (c *Connector) awaitConnection(callback func(*Connection)) {
 				recovered := recover()
 				if recovered != nil {
 					fmt.Println("Recovered from some kind of panic while awaiting for the connection")
-					fmt.Printf("%v", recovered)
+					fmt.Printf("%v\n", recovered)
 					c.requestReconnection()
 				}
 			}()
 
 			c.connectionAwaiting.Lock()
-			defer c.connectionAwaiting.Unlock()
 
 			ch := make(chan struct{})
 			c.connectionAwaiting.Queue = append(c.connectionAwaiting.Queue, ch)
 
-			fmt.Println("Locked till we good")
+			c.connectionAwaiting.Unlock()
+
 			<-ch // Lock until we are good
 
 			callback(c.CurrentConnection)
@@ -226,7 +229,6 @@ func (c *Connector) cycle() {
 
 	select {
 		case _ = <-c.loopChannels.healthcheckRequests: {
-			fmt.Println("Healthcheck going on")
 			go func() {
 				ok := c.healthcheck()
 				if !ok {
@@ -236,7 +238,7 @@ func (c *Connector) cycle() {
 		}
 
 		case _ = <-c.loopChannels.reconnectRequests: {
-			fmt.Println("RMQ reconnects due to manual reconnect request")
+			fmt.Println("RMQ connects")
 			c.reconnect()
 		}
 		default:
@@ -274,8 +276,7 @@ func (c *Connector) EnableHealthchecks() {
 	go func() {
 		for {
 			select {
-			case t := <-ticker.C:
-				fmt.Println("Tick at", t)
+			case _ = <-ticker.C:
 				c.loopChannels.healthcheckRequests <- struct{}{}
 			}
 		}
@@ -283,7 +284,6 @@ func (c *Connector) EnableHealthchecks() {
 }
 
 func (c *Connector) RunForever() {
-	fmt.Println("Running forever")
 	c.requestReconnection()
 
 	for {

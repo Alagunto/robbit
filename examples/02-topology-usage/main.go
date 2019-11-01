@@ -11,7 +11,7 @@ import (
 func main() {
 	topology, _ := os.Open("topology/test-examples/00-simple.yaml")
 
-	c := robbit.ConnectTo("amqp://localhost:5672/").
+	c := robbit.To("amqp://localhost:5672/").
 		WithTopologyFrom(topology) // ...and that's it.
 
 	// Upon each reconnection it will redeclare the given topology.

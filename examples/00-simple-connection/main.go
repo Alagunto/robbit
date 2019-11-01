@@ -2,34 +2,35 @@ package main
 
 import (
 	"fmt"
-	"github.com/streadway/amqp"
 )
 import "git-02.t1-group.ru/go-modules/robbit"
 
 func main() {
 	// It declares a new connection, not actually connecting yet
-	c := robbit.ConnectTo("amqp://localhost:5672/")
+	c := robbit.To("amqp://localhost:5672/")
 
 	// It tells connection to create a channel each time it's reconnecting.
 	// After each channel creation, given callback will be run
-	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
-		fmt.Println("Channel", channel, "is given")
+	c.MaintainChannel("source", func(connection *robbit.Connection, channel *robbit.Channel) {
+		fmt.Println("Channel", channel.Key, "is given")
 	})
 
-	c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
-		fmt.Printf("%v", channels)
+	c.InitializeWith(func(connection *robbit.Connection) {
+		for c, _ := range connection.OpenChannels {
+			fmt.Println(c, "open")
+		}
 	})
 
 	go func() {
 		// This one asks the connection for a connection instance
 		// This will block if reconnection is in progress
 		// This one guarantees that connection was alive just before the func is called
-		c.WithOpenConnection(func(c *amqp.Connection) {
-			fmt.Println("I'm given a connection", c)
+		c.WithOpenConnection(func(c *robbit.Connection) {
+			fmt.Println("I'm given a connection", c.Id)
 		})
 
-		c.WithOpenChannel("source", func(c *amqp.Channel) {
-			fmt.Println("I'm given a channel", c)
+		c.WithOpenChannel("source", func(c *robbit.Connection, channel *robbit.Channel) {
+			fmt.Println("I'm given a channel", channel.Key)
 		})
 	}()
 

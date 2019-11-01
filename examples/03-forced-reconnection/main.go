@@ -1,26 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"git-02.t1-group.ru/go-modules/robbit"
-	"github.com/streadway/amqp"
 )
 
 /*
 	This one shows ways to force a reconnection
 */
 func main() {
-	c := robbit.ConnectTo("amqp://localhost:5672/")
+	c := robbit.To("amqp://localhost:5672/")
 
-	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
+	c.MaintainChannel("source", func(connection *robbit.Connection, channel *robbit.Channel) {
 		//fmt.Println("Maintaining the channel...")
-		_ = connection.Close() // This will make robbit recreate everything!
-	})
-
-	c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
-		fmt.Println("Initializing...")
-		// or you can just...
-		c.Reconnect()
+		_ = connection.Close() // This will make robbit die
 	})
 
 	c.RunForever()

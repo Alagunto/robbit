@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/streadway/amqp"
+	"fmt"
 )
 import "git-02.t1-group.ru/go-modules/robbit"
 
@@ -10,10 +10,10 @@ import "git-02.t1-group.ru/go-modules/robbit"
 	This example reconnects infinitely.
 */
 func main() {
-	c := robbit.ConnectTo("amqp://localhost:5672/")
+	c := robbit.To("amqp://localhost:5672/")
 
-	c.MaintainChannel("source", func(channel *amqp.Channel, connection *amqp.Connection) {
-		fmt.Println("Channel", channel, "is given")
+	c.MaintainChannel("source", func(connection *robbit.Connection, channel *robbit.Channel) {
+		fmt.Println("Channel", channel.Key, "is given")
 		panic("me ded lol")
 	})
 

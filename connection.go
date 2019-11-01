@@ -25,7 +25,7 @@ func (c *Connection) OpenChannel(name string) *Channel {
 		panic(err)
 	}
 
-	channelWrapper := &Channel{Channel: *channel}
+	channelWrapper := &Channel{Channel: *channel, Key: name}
 
 	c.OpenChannels[name] = channelWrapper
 
@@ -37,8 +37,6 @@ func (c *Connection) EnableNotificationChannels() {
 	c.BlockingNotification = make(chan amqp.Blocking, 128)
 	c.NotifyClose(c.ErrorNotifications)
 	c.NotifyBlocked(c.BlockingNotification)
-	println("Notification would be sent to my channel lol")
-
 }
 
 func (c *Connection) Purge() {
@@ -52,7 +50,7 @@ func (c *Connection) Purge() {
 
 	c.Broken = true
 
-	println("Purging stuff")
+	//println("Purging stuff")
 	//for _, channel := range c.OpenChannels {
 	//	_ = channel.Close() // Errors might be
 	//}
@@ -60,7 +58,6 @@ func (c *Connection) Purge() {
 	if !c.IsClosed() {
 		_ = c.Close()
 	}
-	println("Purged")
 }
 
 func (c *Connection) IsReady() bool {
