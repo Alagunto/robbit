@@ -241,7 +241,6 @@ func (c *Connector) cycle() {
 			fmt.Println("RMQ connects")
 			c.reconnect()
 		}
-		default:
 	}
 
 	connection := c.currentConnection()
@@ -254,7 +253,6 @@ func (c *Connector) cycle() {
 			case _ = <-c.currentConnection().BlockingNotification: {
 				fmt.Println("Blocking notification from amqp")
 			}
-			default:
 		}
 	}
 }

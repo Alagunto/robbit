@@ -1,6 +1,6 @@
 module git-02.t1-group.ru/go-modules/robbit
 
-go 1.12
+go 1.13
 
 require (
 	git-02.t1-group.ru/go-modules/utils v0.0.0-20190409100241-1491a035bcec
