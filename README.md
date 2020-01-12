@@ -10,20 +10,18 @@
 _он просто [почти] роби́т_
 ### Простой пример
 ```go
-c := robbit.ConnectTo("amqp://localhost:5672/")
+c := robbit.To("amqp://localhost:5672/")
 c.RunForever() // blocking
 ```
 
-`ConnectTo(...)` создаёт объект подключения, но не осуществляет подключение, пока не будет вызван `Run` или `RunForever`. Пардон за название, так смотрится лучше :) 
+`To(...)` создаёт объект подключения, но не осуществляет подключение, пока не будет вызван `Run` или `RunForever`. 
    
 `RunForever()` запускает вечный цикл поддержания соединения. Если соединение прервётся, модуль сам перезапустит его.
 
-`Run()` — это синоним для `go RunForever()`
-
 ### Каналы и переподключение
 ```go
-c := robbit.ConnectTo("amqp://localhost:5672/")
-c.MaintainChannel("source", func(channel *amqp.Channel) {
+c := robbit.To("amqp://localhost:5672/")
+c.MaintainChannel("source", func(channel *robbit.Channel) {
     fmt.Println("Channel", channel, "is given")
 })
 ```
@@ -35,8 +33,10 @@ Callback, который передаётся в `MaintainChannel`, вызыва
 Из этого callback'а имеет смысл объявлять очереди, exchange'ы и бинды.
 
 ```go
-c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
-    fmt.Printf("%v", channels)
+c.InitializeWith(func(connection *robbit.Connection) {
+    for c, _ := range connection.OpenChannels {
+        fmt.Println(c, "open")
+    }
 })
 ```
 
@@ -49,11 +49,11 @@ __Если любой из этих коллбеков запаникует, п�
 ### Чтение 
 
 ```go
-c := robbit.ConnectTo("amqp://localhost:5672/")
+c := robbit.To("amqp://localhost:5672/")
 
-c.MaintainChannel("source", func(channel *amqp.Channel) {}) 
+c.MaintainChannel("source", func(channel *robbit.Channel) {}) 
 
-c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Channel) {
+c.InitializeWith(func(connection *robbit.Connection) {
     msgs, _ := channels["source"].Consume(
         "queue-name",        // queue
         "",                  // consumer
@@ -70,18 +70,20 @@ c.InitializeWith(func(connection *amqp.Connection, channels map[string]*amqp.Cha
         }
     }()
 })
+
+c.RunForever()
 ```
 
 ### Запись
 
 ```go
-c := robbit.ConnectTo("amqp://localhost:5672/")
+c := robbit.To("amqp://localhost:5672/")
 
-c.MaintainChannel("target", func(channel *amqp.Channel) {}) 
+c.MaintainChannel("target", func(channel *robbit.Channel) {}) 
 
 ...
 
-c.WithOpenChannel("target", func(c *amqp.Channel) {
+c.WithOpenChannel("target", func(c *robbit.Channel) {
     c.Publish("queue-name",
         "",    // routing key
         false, // mandatory
@@ -92,6 +94,8 @@ c.WithOpenChannel("target", func(c *amqp.Channel) {
         }
     )
 })
+
+c.RunForever()
 ```
 
 `WithOpenChannel` позволяет получить актуальный объект канала. Гарантируется, что на момент вызова callback'а канал был открыт и доступен.
@@ -130,7 +134,7 @@ channelfordeclarations: lol
 ```go
 topology, _ := os.Open("config.yaml")
 
-c := robbit.ConnectTo("amqp://localhost:5672/").
+c := robbit.To("amqp://localhost:5672/").
     WithTopologyFrom(topology) // ...и всё.
     		
 c.RunForever()    		
