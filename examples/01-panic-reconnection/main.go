@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/alagunto/robbit"
 )
-import "git-02.t1-group.ru/go-modules/robbit"
 
 /*
 	If initialization of at least one channel declared with MaintainChannel panics, the whole connection goes reconnect.

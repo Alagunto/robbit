@@ -1,7 +1,7 @@
 package robbit
 
 import (
-	"git-02.t1-group.ru/go-modules/robbit/topology"
+	"github.com/alagunto/robbit/topology"
 	"gopkg.in/yaml.v2"
 )
 

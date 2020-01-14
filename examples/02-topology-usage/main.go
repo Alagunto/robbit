@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git-02.t1-group.ru/go-modules/robbit"
+	"github.com/alagunto/robbit"
 	"os"
 )
 

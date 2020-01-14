@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/alagunto/robbit"
 )
-import "git-02.t1-group.ru/go-modules/robbit"
 
 func main() {
 	// It declares a new connection, not actually connecting yet
