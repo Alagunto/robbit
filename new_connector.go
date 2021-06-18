@@ -87,15 +87,6 @@ func (c *Connector) currentConnection() *Connection {
 }
 
 func (c *Connector) reconnect() {
-	defer func() {
-		r := recover()
-
-		if r != nil {
-			fmt.Println("Cannot reconnect because of", r)
-			c.requestReconnection()
-		}
-	}()
-
 	c.Reconnect.Lock()
 	defer c.Reconnect.Unlock()
 

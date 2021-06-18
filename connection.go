@@ -50,11 +50,6 @@ func (c *Connection) Purge() {
 
 	c.Broken = true
 
-	//println("Purging stuff")
-	//for _, channel := range c.OpenChannels {
-	//	_ = channel.Close() // Errors might be
-	//}
-
 	if !c.IsClosed() {
 		_ = c.Close()
 	}
